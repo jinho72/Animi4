@@ -311,8 +311,8 @@ function createHeadOccluder() {
     transparent: true,
     opacity: 0.0   
   });
-  material.depthwrite = true;
-  material.colorwirte = false;
+  material.depthWrite = true;
+  material.colorWrite = false;
   
   headOccluder = new THREE.Mesh(geometry,material);
   headOccluder.visible = false;
