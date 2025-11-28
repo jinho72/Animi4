@@ -476,14 +476,14 @@ cameraBtn.addEventListener("click", async () => {
       }
     });
 
-    cameraBtn.textContent = "📷 Camera On";
+    cameraBtn.textContent = "Camera On";
     faceStatus.textContent =
       "Camera on – move your head and inhale to let petals follow.";
   } catch (err) {
     console.error("Error accessing webcam:", err);
     alert("Could not access camera. Check permissions and try again.");
     cameraBtn.disabled = false;
-    cameraBtn.textContent = "📷 Enable Camera";
+    cameraBtn.textContent = "Enable Camera";
   }
 });
 
