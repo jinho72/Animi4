@@ -17,7 +17,7 @@ import {
 } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.0/vision_bundle.js";
 
 // ---------- BACKGROUND MUSIC TRACKS ----------
-// Use RAW GitHub URLs, not normal page URLs
+// resorted to cdn.jsdelivr for fast loading
 const musicTracks = [
   https://cdn.jsdelivr.net/gh/jinho72/Animi@master/meditation-music-338902.mp3,
   https://cdn.jsdelivr.net/gh/jinho72/Animi@master/meditation-background-409198.mp3,
