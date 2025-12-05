@@ -13,16 +13,15 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
 // MediaPipe Tasks Vision: FaceDetector + FilesetResolver
 import {
   FilesetResolver,
-  FaceDetector,
-  FaceLandmarker
+  FaceDetector
 } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.0/vision_bundle.js";
 
 // ---------- BACKGROUND MUSIC TRACKS ----------
-// resorted to cdn.jsdelivr for fast loading
+// Use RAW GitHub URLs, not normal page URLs
 const musicTracks = [
-  "https://cdn.jsdelivr.net/gh/jinho72/Animi@master/meditation-music-338902.mp3",
-  "https://cdn.jsdelivr.net/gh/jinho72/Animi@master/meditation-background-409198.mp3",
-  "https://cdn.jsdelivr.net/gh/jinho72/Animi@master/meditation-background-434654.mp3"
+  "https://raw.githubusercontent.com/jinho72/Animi/bb2abe03a1617f20c3ca1579a15dde94130b5ad2/meditation-music-338902.mp3",
+  "https://raw.githubusercontent.com/jinho72/Animi/bb2abe03a1617f20c3ca1579a15dde94130b5ad2/meditation-background-409198.mp3",
+  "https://raw.githubusercontent.com/jinho72/Animi/bb2abe03a1617f20c3ca1579a15dde94130b5ad2/meditation-background-434654.mp3"
 ];
 
 // ---------- DOM ELEMENTS ----------
@@ -44,6 +43,45 @@ const webcamVideo = document.getElementById("webcam");
 const musicBtn = document.getElementById("musicBtn");
 const bgMusic = document.getElementById("bgMusic");
 let musicOn = false;
+
+//orb elements
+// Orbs (background blobs)
+const orbPurple = document.querySelector(".orb-purple");
+const orbBlue   = document.querySelector(".orb-blue");
+const orbPink   = document.querySelector(".orb-pink");
+
+
+//subtitle elements
+const subtitle = document.getElementById("subtitle");
+
+//
+const tmpHeadTarget = new THREE.Vector3();
+
+// Subtitle changes as user progresses
+const subtitleScript = [
+  { minCycle: 0, text: "Bring Minds, Change Minds" },
+  { minCycle: 1, text: "Make sure your sound is on and your are in your comfortable posture" },
+  { minCycle: 2, text: "Focus on your breathing." },
+  { minCycle: 3, text: "Stay with the rhythm. You’re doing great." },
+  { minCycle: 5, text: "Notice how your body feels a little lighter." },
+];
+
+function updateSubtitle() {
+  if (!subtitle) return;
+
+  // default to the first line
+  let currentText = subtitleScript[0].text;
+
+  // pick the last line whose minCycle <= cycleCount
+  for (const entry of subtitleScript) {
+    if (cycleCount >= entry.minCycle) {
+      currentText = entry.text;
+    }
+  }
+
+  subtitle.textContent = currentText;
+}
+
 
 // ---------- BREATHING STATE & CONFIG ----------
 
@@ -86,6 +124,7 @@ function updateInstructionUI() {
   } else {
     cycleText.textContent = "";
   }
+  updateSubtitle();
 }
 
 // When phase changes, record start time so animation can sync
@@ -134,6 +173,7 @@ function stopBreathingSequence() {
   breathTimeoutId = null;
   breathPhase = "idle";
   updateInstructionUI();
+  
 }
 
 // Play/pause breathing on button click
@@ -145,15 +185,18 @@ breathToggleBtn.addEventListener("click", () => {
     breathToggleBtn.textContent = "⏸ Pause Breathing";
     breathToggleBtn.classList.add("primary");
     startBreathingSequence();
+    startMusic();
   } else {
     breathToggleBtn.textContent = "▶ Start Breathing";
     breathToggleBtn.classList.remove("primary");
     stopBreathingSequence();
+    stopMusic();
   }
 });
 
 // Toggle visibility of breathing mode buttons
 settingsToggleBtn.addEventListener("click", () => {
+  //modeButtonsContainer.classList.toggle("active");// currently this is a problem
   modeButtonsContainer.classList.toggle("hidden");
 });
 
@@ -163,9 +206,17 @@ modeButtons.forEach((btn) => {
     const selected = btn.getAttribute("data-mode");
     if (!selected) return;
     selectedModeKey = selected;
-
+    
+    
+    //Highlight selected mode
     modeButtons.forEach((b) => b.classList.remove("active"));
     btn.classList.add("active");
+    
+    //smooth fade out animation
+    //modeButtonsContainer.classList.remove("active");
+    
+    //Hide the mode overlay when the choice is made
+    modeButtonsContainer.classList.add("hidden");
 
     if (isBreathing) {
       stopBreathingSequence();
@@ -289,7 +340,6 @@ function createLotusPetals() {
     lotusGroup.add(petal);
     petalMeshes.push(petal);
   }
-
   const centerGeometry = new THREE.CircleGeometry(0.4, 32);
   const centerMaterial = new THREE.MeshPhysicalMaterial({
     color: 0xffeb3b,
@@ -303,7 +353,6 @@ function createLotusPetals() {
   lotusGroup.add(center);
 }
 
-
 //function for adding depth to the headsphere
 function createHeadOccluder() {
   const geometry = new THREE.SphereGeometry(1,32,32);
@@ -314,9 +363,11 @@ function createHeadOccluder() {
   });
   material.depthWrite = true;
   material.colorWrite = false;
+  material.depthTest = true;
   
   headOccluder = new THREE.Mesh(geometry,material);
-  headOccluder.visible = false;
+  headOccluder.visible = true;
+  headOccluder.renderOrder = 0;
   scene.add(headOccluder);
 
 }
@@ -325,13 +376,18 @@ function createHeadOccluder() {
 function animate() {
   requestAnimationFrame(animate);
 
-  lotusGroup.rotation.y += 0.003;
+  //lotusGroup.rotation.y += 0.003;//main issue with the head-petals coordination
+  /* 
+  	•	petal.position.x = anchor.x + ... is in lotusGroup’s local space.
+	•	When you rotate the entire group, “right” in local space is no longer “right” on the screen.
+	•	So even if headAnchor is correct, the group rotation makes petals appear to move in the opposite / weird direction.
+*/
 
   updatePetalsByBreath();
 
   renderer.render(scene, camera);
 }
-
+  
 // Petal animation based on breathing phase and head position
 function updatePetalsByBreath() {
   if (!petalMeshes.length) return;
@@ -382,11 +438,10 @@ function updatePetalsByBreath() {
       const height = 3 - eased * 3;
       const spiralAngle = angle + Math.PI * 2 - eased * Math.PI * 2;
 
-      const baseAnchor = new THREE.Vector3(0, 0, 0);
 
-      petal.position.x = baseAnchor.x + Math.cos(spiralAngle) * radius;
-      petal.position.z = baseAnchor.z + Math.sin(spiralAngle) * radius;
-      petal.position.y = baseAnchor.y + height;
+      petal.position.x = anchor.x + Math.cos(spiralAngle) * radius;
+      petal.position.z = anchor.z + Math.sin(spiralAngle) * radius;
+      petal.position.y = anchor.y + height;
 
       petal.rotation.y = angle + Math.PI * 4 - eased * Math.PI * 4;
       petal.rotation.x = Math.PI * 0.65 - eased * Math.PI * 0.5;
@@ -404,9 +459,9 @@ function updatePetalsByBreath() {
     } else {
       const smallOrbit = (now * 0.0001 + i * 0.2) % (Math.PI * 2);
       const baseRadius = 0.5;
-      petal.position.x = Math.cos(angle + smallOrbit) * baseRadius;
-      petal.position.z = Math.sin(angle + smallOrbit) * baseRadius;
-      petal.position.y = 0.1 + Math.sin(now * 0.001 + i) * 0.05;
+      petal.position.x = anchor.x + Math.cos(angle + smallOrbit) * baseRadius;
+      petal.position.z = anchor.z + Math.sin(angle + smallOrbit) * baseRadius;
+      petal.position.y = anchor.y + 0.1 + Math.sin(now * 0.001 + i) * 0.05;
     }
   });
 }
@@ -449,7 +504,7 @@ cameraBtn.addEventListener("click", async () => {
   }
 
   cameraBtn.disabled = true;
-  cameraBtn.textContent = "📷 Loading...";
+  cameraBtn.textContent = "Camera Loading...";
 
   if (!faceDetector) {
     try {
@@ -458,7 +513,7 @@ cameraBtn.addEventListener("click", async () => {
       console.error(e);
       faceStatus.textContent = "Failed to load face detector.";
       cameraBtn.disabled = false;
-      cameraBtn.textContent = "📷 Enable Camera";
+      cameraBtn.textContent = "Enable Camera";
       return;
     }
   }
@@ -529,14 +584,19 @@ async function predictWebcam() {
       const ny = centerY / vh;
       
       const mirroredNx = 1 - nx;
-      
+      const faceSize = box.height / vh;
 
-      const worldX = (nx - 0.5) * 4.0;
+      const worldX = (mirroredNx - 0.5) * 4.0;
       const worldY = (0.5 - ny) * 3.0 + 1.2;
-      const worldZ = 0;
+      //const worldZ = 0;
+      // Simple depth: when your face is smaller, move anchor “back”
+      const worldZ = THREE.MathUtils.clamp((0.45 - faceSize) * 10, -2.5, 1.0);
 
       const target = new THREE.Vector3(worldX, worldY, worldZ);
-      headAnchor.lerp(target, 0.2);
+      //tempHeadTarget.set(worldX, worldY, worldZ);
+      
+      //headAnchor.lerp(tmpHeadTarget, 0.7);
+      headAnchor.copy(target);
       hasFace = true;
 
       if (headOccluder) {
@@ -559,67 +619,152 @@ async function predictWebcam() {
   requestAnimationFrame(predictWebcam);
 }
 
-// ---------- MUSIC SETUP (SAFE) ----------
+// ---------- AUDIO ANALYSER + ORB VISUALIZER ----------
+let audioCtx = null;
+let analyser = null;
+let analyserData = null;
+let orbVizRunning = false;
 
+function initAudioAnalyser() {
+  if (!bgMusic) return;
+  if (audioCtx) return; // already created for this <audio>
+
+  audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  const source = audioCtx.createMediaElementSource(bgMusic);
+
+  analyser = new AnalyserNode(audioCtx, { fftSize: 256 });
+  analyserData = new Uint8Array(analyser.frequencyBinCount);
+
+  // audio: <audio> -> analyser -> speakers
+  source.connect(analyser);
+  analyser.connect(audioCtx.destination);
+}
+
+function startOrbVisualizer() {
+  if (!analyser || orbVizRunning) return;
+  orbVizRunning = true;
+
+  // Let CSS know we're now audio-driven
+  orbPurple && orbPurple.classList.add("reactive");
+  orbBlue   && orbBlue.classList.add("reactive");
+  orbPink   && orbPink.classList.add("reactive");
+
+  requestAnimationFrame(orbVizLoop);
+}
+
+function stopOrbVisualizer() {
+  orbVizRunning = false;
+
+  // Optional: gently reset back to baseline
+  [orbPurple, orbBlue, orbPink].forEach((orb) => {
+    if (!orb) return;
+    orb.style.transform = "";
+    orb.style.opacity = "";
+    orb.style.backgroundColor = "";
+    orb.classList.remove("reactive");
+  });
+}
+
+function orbVizLoop() {
+  if (!orbVizRunning || !analyser || !analyserData) return;
+
+  analyser.getByteFrequencyData(analyserData);
+
+  // average energy (0–255) -> 0–1
+  let sum = 0;
+  for (let i = 0; i < analyserData.length; i++) sum += analyserData[i];
+  let level = sum / analyserData.length / 255;
+
+  // Make it subtle & meditative
+  const eased = Math.pow(level, 0.8); // gentle curve
+  const baseScale = 1.0;
+  const maxExtraScale = 0.35; // how much they grow/shrink
+  const scale = baseScale + eased * maxExtraScale;
+
+  // Base hues for each orb
+  const huePurple = 275;
+  const hueBlue   = 205;
+  const huePink   = 325;
+
+  // Wiggle hues a bit with the music
+  const hueOffset = eased * 30; // +/- ~30 degrees
+
+  if (orbPurple) {
+    orbPurple.style.backgroundColor = `hsl(${huePurple + hueOffset}, 85%, 65%)`;
+    orbPurple.style.opacity = 0.25 + eased * 0.4;   // 0.25–0.65
+    orbPurple.style.transform = `scale(${scale})`;
+  }
+
+  if (orbBlue) {
+    orbBlue.style.backgroundColor = `hsl(${hueBlue + hueOffset}, 80%, 65%)`;
+    orbBlue.style.opacity = 0.2 + eased * 0.35;
+    orbBlue.style.transform = `scale(${scale * 0.95})`;
+  }
+
+  if (orbPink) {
+    orbPink.style.backgroundColor = `hsl(${huePink + hueOffset}, 90%, 70%)`;
+    orbPink.style.opacity = 0.22 + eased * 0.45;
+    orbPink.style.transform = `scale(${scale * 1.05})`;
+  }
+
+  requestAnimationFrame(orbVizLoop);
+}
+
+// ---------- MUSIC SETUP (SIMPLE + WORKING) ----------
+
+// pick a random file from musicTracks
+function chooseRandomTrack() {
+  const index = Math.floor(Math.random() * musicTracks.length);
+  return musicTracks[index];
+}
+
+function startMusic() {
+  if (!bgMusic) {
+    console.log("[MUSIC] No bgMusic element found");
+    return;
+  }
+  if (musicOn) {
+    console.log("[MUSIC] Already playing");
+    return;
+  }
+
+  const track = chooseRandomTrack();
+  bgMusic.src = track;
+  bgMusic.volume = 0.7; // loud enough
+  console.log("[MUSIC] Selected track:", track);
+
+  bgMusic
+    .play()
+    .then(() => {
+      console.log("[MUSIC] Playback started successfully.");
+      musicOn = true;
+    })
+    .catch((err) => {
+      console.log("[MUSIC] Playback blocked or failed:", err);
+    });
+}
+
+function stopMusic() {
+  if (!bgMusic || !musicOn) return;
+  console.log("[MUSIC] Turning music off...");
+  bgMusic.pause();
+  musicOn = false;
+}
+
+// Wire up the music button
 if (musicBtn && bgMusic) {
-  function chooseRandomTrack() {
-    const index = Math.floor(Math.random() * musicTracks.length);
-    return musicTracks[index];
-  }
-
-  function fadeAudio(audio, toVolume, duration = 1200) {
-    const from = audio.volume ?? 0;
-    const steps = 30;
-    const stepTime = duration / steps;
-    let current = 0;
-
-    const fading = setInterval(() => {
-      current++;
-      const progress = current / steps;
-      audio.volume = from + (toVolume - from) * progress;
-
-      if (current >= steps) {
-        clearInterval(fading);
-        audio.volume = toVolume;
-        if (toVolume === 0) audio.pause();
-      }
-    }, stepTime);
-  }
-
   musicBtn.addEventListener("click", () => {
     if (!musicOn) {
-      const track = chooseRandomTrack();
-      bgMusic.src = track;
-      bgMusic.volume = 0;
-
-      console.log("[MUSIC] Selected track:", track);
-      console.log("[MUSIC] Attempting to play...");
-
-      bgMusic
-        .play()
-        .then(() => {
-          console.log("[MUSIC] Playback started successfully.");
-          fadeAudio(bgMusic, 0.5);
-        })
-        .catch((err) => {
-          console.log("[MUSIC] Playback blocked or failed:", err);
-        });
-
-      musicBtn.textContent = "Music On";
-      musicOn = true;
+      startMusic();
+      musicBtn.textContent = "Sound On";
     } else {
-      console.log("[MUSIC] Turning music off...");
-      fadeAudio(bgMusic, 0);
-      musicBtn.textContent = "Music Off";
-      musicOn = false;
+      stopMusic();
+      musicBtn.textContent = "Sound Off";
     }
   });
 } else {
-  console.warn(
-    "[MUSIC] musicBtn or bgMusic not found in DOM – skipping music setup."
-  );
+  console.warn("[MUSIC] musicBtn or bgMusic not found in DOM – skipping music setup.");
 }
-
 // ---------- BOOTSTRAP ----------
 
 initThree();
