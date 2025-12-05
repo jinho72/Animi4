@@ -6,7 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
   <!-- Our CSS -->
-  <link rel="stylesheet" href="index.css" />
+  <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
   <!-- Big glowing background blobs -->
@@ -15,15 +15,17 @@
     <div class="orb orb-blue"></div>
     <div class="orb orb-pink"></div>
   </div>
-<!-- audio tag -->
-  <audio id="bgMusic" loop></audio>
   
+
+  <!-- SINGLE audio tag -->
+  <audio id="bgMusic" loop></audio>
+
   <!-- Main app container -->
   <div class="app">
     <!-- App header -->
     <header class="header">
       <h1 class="title">Animi</h1>
-      <p class="subtitle"> bring minds, change minds</p>
+      <p id="subtitle" class="subtitle">Bring Minds, Change Minds</p>
     </header>
 
     <!-- Main content -->
@@ -67,18 +69,14 @@
 
           <!-- Enable webcam + face detection -->
           <button id="cameraBtn" class="btn round">
-           Enable Camera
+            Enable Camera
           </button>
-          
-           <button id ="musicbtn" class="btn round">
-          sound off
+
+          <!-- Sound toggle -->
+          <button id="musicBtn" class="btn round">
+            Sound Off
           </button>
         </div>
-        
-      <!-- Background Music -->
-        <audio id ="bgMusic" loop></audio>
-        
-      
 
         <!-- Breathing mode buttons -->
         <div id="modeButtons" class="mode-buttons hidden">
@@ -97,6 +95,6 @@
   </div>
 
   <!-- Our JS as an ES module -->
-  <script type="module" src="index.js"></script>
+  <script type="module" src="script.js"></script>
 </body>
 </html>
