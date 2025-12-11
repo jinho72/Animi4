@@ -2,83 +2,64 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Animi</title>
+  <title>Animi - Teal Glass</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-
-  <!-- Our CSS -->
-  <link rel="stylesheet" href="index.css" />
 </head>
 <body>
-  <!-- Big glowing background blobs -->
   <div class="bg-orbs">
-    <div class="orb orb-purple"></div>
-    <div class="orb orb-blue"></div>
-    <div class="orb orb-pink"></div>
+    <div class="orb orb-teal" id="orbPurple"></div>
+    <div class="orb orb-cyan" id="orbBlue"></div>
+    <div class="orb orb-blue" id="orbPink"></div>
   </div>
   
 
-  <!-- SINGLE audio tag -->
-  <audio id="bgMusic" loop></audio>
+  <audio id="bgMusic" loop crossorigin="anonymous"></audio>
 
-  <!-- Main app container -->
+  <div id="lotusContainer" class="lotus-container"></div>
+
   <div class="app">
-    <!-- App header -->
     <header class="header">
       <h1 class="title">Animi</h1>
       <p id="subtitle" class="subtitle">Bring Minds, Change Minds</p>
     </header>
 
-    <!-- Main content -->
     <main class="main">
-      <!-- Lotus + webcam + instruction text -->
       <section class="lotus-wrapper">
-        <!-- Webcam video as background layer (your face) -->
-        <video
-          id="webcam"
-          class="webcam lotus-video"
-          autoplay
-          playsinline
-          muted
-        ></video>
+        <div class="droplet-layer glass-back fluid-anim-slow"></div>
+        <div class="droplet-layer video-core fluid-anim-main">
+          <video id="webcam" class="webcam-hidden" autoplay playsinline muted></video>
+          <canvas id="output_canvas" class="webcam-canvas"></canvas>
+          <div class="shine-inner"></div>
+        </div>
+        <div class="droplet-layer glass-front fluid-anim-fast">
+          <div class="shine-outer"></div>
+        </div>
 
-        <!-- Three.js renders into this container (above the video) -->
-        <div id="lotusContainer" class="lotus-container"></div>
-
-        <!-- Instruction text overlayed on top of everything -->
         <div class="lotus-overlay">
-          <p id="instructionText" class="instruction">Start Meditation</p>
+          <p id="instructionText" class="instruction">Get Ready</p>
           <p id="cycleText" class="cycle-text"></p>
           <p id="faceStatus" class="face-status">
-            Click "Enable Camera" to start face detection.
+            Click "Enable Camera" to begin.
           </p>
         </div>
       </section>
 
-      <!-- Controls section -->
       <section class="controls">
         <div class="button-row">
-          <!-- Start / Pause breathing -->
           <button id="breathToggleBtn" class="btn round primary">
             ▶ Start Breathing
           </button>
-
-          <!-- Show/hide breathing modes -->
           <button id="settingsToggleBtn" class="btn round">
             Modes
           </button>
-
-          <!-- Enable webcam + face detection -->
           <button id="cameraBtn" class="btn round">
             Enable Camera
           </button>
-
-          <!-- Sound toggle -->
           <button id="musicBtn" class="btn round">
             Sound Off
           </button>
         </div>
 
-        <!-- Breathing mode buttons -->
         <div id="modeButtons" class="mode-buttons hidden">
           <button class="btn mode-btn active" data-mode="balance">
             Balance<br /><span class="mode-small">4–4–4</span>
@@ -93,8 +74,5 @@
       </section>
     </main>
   </div>
-
-  <!-- Our JS as an ES module -->
-  <script type="module" src="index.js"></script>
 </body>
 </html>
